@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Diagrama de Flujo — invertirCadena</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;700&display=swap');
+
+:root {
+  --bg:       #080c14;
+  --surface:  #0e1420;
+  --border:   #1c2438;
+  --c-term:   #00e5a0;
+  --c-proc:   #3d8ef0;
+  --c-dec:    #f0a030;
+  --c-swap:   #c45cf0;
+  --c-arrow:  #2a3a5a;
+  --c-yes:    #00c97a;
+  --c-no:     #f05050;
+  --text:     #d0dcf5;
+  --muted:    #4a5a7a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: 'Outfit', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 3rem 1.5rem 5rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: linear-gradient(100deg, var(--c-term), var(--c-proc) 50%, var(--c-swap));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.4rem;
+}
+header p {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 3rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.legend-pip {
+  width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+}
+.legend-pip.term  { background: var(--c-term); border-radius: 50px; }
+.legend-pip.proc  { background: var(--c-proc); }
+.legend-pip.dec   { background: var(--c-dec);  transform: rotate(45deg); }
+.legend-pip.swap  { background: var(--c-swap); }
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  max-width: 1060px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.fc-panel, .viz-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2rem 1.5rem;
+}
+
+.fc-panel h2, .viz-panel h2 {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+.viz-panel {
+  position: sticky;
+  top: 2rem;
+}
+
+svg#flow {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.step-badge {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.66rem;
+  background: var(--border);
+  color: var(--muted);
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  margin-bottom: 0.9rem;
+}
+
+.step-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--c-term);
+  margin-bottom: 0.3rem;
+}
+
+.step-desc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 1.4rem;
+  white-space: pre-line;
+}
+
+.mem-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+
+.mem-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.mem-char {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 7px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.3s, transform 0.2s;
+}
+.mem-char.default { background: var(--border); color: var(--text); }
+.mem-char.is-i    { background: var(--c-proc); color: #fff; transform: translateY(-3px); }
+.mem-char.is-f    { background: var(--c-swap); color: #fff; transform: translateY(-3px); }
+.mem-char.is-both { background: linear-gradient(135deg, var(--c-proc), var(--c-swap)); color: #fff; transform: translateY(-3px); }
+.mem-char.swapped { background: #162a1e; color: var(--c-term); }
+
+.mem-ptr {
+  font-size: 0.56rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  height: 13px;
+}
+.mem-ptr.pi { color: var(--c-proc); }
+.mem-ptr.pf { color: var(--c-swap); }
+.mem-ptr.pb { color: #fff; }
+
+.mem-idx {
+  font-size: 0.52rem;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.ptr-bar {
+  background: var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  display: flex;
+  gap: 1.2rem;
+  margin-bottom: 1.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.ptr-item { display: flex; align-items: center; gap: 0.4rem; }
+.ptr-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink:0; }
+
+.progress {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 1.2rem;
+}
+.progress-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border);
+  transition: background 0.3s;
+}
+.progress-dot.active { background: var(--c-term); }
+.progress-dot.done   { background: var(--muted); }
+
+.nav {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+.nav button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 1rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.nav button:disabled { opacity: 0.3; cursor: default; }
+.btn-prev  { background: var(--border); color: var(--text); }
+.btn-next  { background: var(--c-proc); color: #fff; }
+.btn-reset { background: var(--border); color: var(--muted); }
+.nav .counter {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+@media (max-width: 680px) {
+  .layout { grid-template-columns: 1fr; }
+  .viz-panel { position: static; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Diagrama de Flujo</h1>
+  <p>void invertirCadena(char *inicio)</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-pip term"></div> Inicio / Fin</div>
+  <div class="legend-item"><div class="legend-pip proc"></div> Proceso</div>
+  <div class="legend-item"><div class="legend-pip dec"></div> Decisión</div>
+  <div class="legend-item"><div class="legend-pip swap"></div> Intercambio</div>
+</div>
+
+<div class="layout">
+
+  <!-- ── Flowchart SVG ── -->
+  <div class="fc-panel">
+    <h2>Flujo del algoritmo</h2>
+    <svg id="flow" viewBox="0 0 280 800" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr"     markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#2a3a5a"/></marker>
+        <marker id="arr-yes" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#00c97a"/></marker>
+        <marker id="arr-no"  markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f05050"/></marker>
+        <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+
+      <!-- INICIO -->
+      <rect x="90" y="12" width="100" height="34" rx="17" fill="#00e5a0" filter="url(#glow)"/>
+      <text x="140" y="34" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="700" fill="#080c14">INICIO</text>
+
+      <line x1="140" y1="46" x2="140" y2="68" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- fin = inicio -->
+      <rect x="60" y="69" width="160" height="34" rx="7" fill="#3d8ef0"/>
+      <text x="140" y="91" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="#fff">fin = inicio</text>
+
+      <line x1="140" y1="103" x2="140" y2="122" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Phase 1 label -->
+      <text x="140" y="118" text-anchor="middle" font-family="Outfit" font-size="8.5" font-weight="600" fill="#3d8ef0" letter-spacing="1.5">FASE 1 · BUSCAR '\0'</text>
+
+      <line x1="140" y1="120" x2="140" y2="138" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Decision *fin != '\0' -->
+      <polygon points="140,140 230,175 140,210 50,175" fill="#f0a030"/>
+      <text x="140" y="171" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="600" fill="#080c14">*fin != '\0'?</text>
+
+      <!-- SÍ → fin++ (left loop) -->
+      <line x1="50" y1="175" x2="18" y2="175" stroke="#00c97a" stroke-width="1.5"/>
+      <line x1="18" y1="175" x2="18" y2="240" stroke="#00c97a" stroke-width="1.5"/>
+      <line x1="18" y1="240" x2="60" y2="240" stroke="#00c97a" stroke-width="1.5" marker-end="url(#arr-yes)"/>
+      <text x="6"  y="170"   font-family="Outfit" font-size="9" font-weight="700" fill="#00c97a">SÍ</text>
+
+      <!-- fin++ -->
+      <rect x="60" y="224" width="96" height="30" rx="6" fill="#3d8ef0"/>
+      <text x="108" y="244" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="#fff">fin++</text>
+
+      <!-- loop back dashed -->
+      <line x1="60" y1="239" x2="18" y2="239" stroke="#2a3a5a" stroke-width="1" stroke-dasharray="3,3"/>
+
+      <!-- NO → down -->
+      <line x1="140" y1="210" x2="140" y2="270" stroke="#f05050" stroke-width="1.5" marker-end="url(#arr-no)"/>
+      <text x="146" y="245" font-family="Outfit" font-size="9" font-weight="700" fill="#f05050">NO</text>
+
+      <!-- fin-- -->
+      <rect x="60" y="271" width="160" height="34" rx="7" fill="#3d8ef0"/>
+      <text x="140" y="293" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="#fff">fin--</text>
+
+      <line x1="140" y1="305" x2="140" y2="330" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Phase 2 label -->
+      <text x="140" y="326" text-anchor="middle" font-family="Outfit" font-size="8.5" font-weight="600" fill="#c45cf0" letter-spacing="1.5">FASE 2 · INTERCAMBIO</text>
+
+      <line x1="140" y1="328" x2="140" y2="346" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Decision inicio < fin -->
+      <polygon points="140,348 230,383 140,418 50,383" fill="#c45cf0"/>
+      <text x="140" y="379" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="600" fill="#fff">inicio &lt; fin?</text>
+
+      <!-- NO → right → FIN -->
+      <line x1="230" y1="383" x2="258" y2="383" stroke="#f05050" stroke-width="1.5"/>
+      <line x1="258" y1="383" x2="258" y2="755" stroke="#f05050" stroke-width="1.5"/>
+      <line x1="258" y1="755" x2="191" y2="755" stroke="#f05050" stroke-width="1.5" marker-end="url(#arr-no)"/>
+      <text x="236" y="378" font-family="Outfit" font-size="9" font-weight="700" fill="#f05050">NO</text>
+
+      <!-- SÍ → down -->
+      <line x1="140" y1="418" x2="140" y2="446" stroke="#00c97a" stroke-width="1.5" marker-end="url(#arr-yes)"/>
+      <text x="146" y="437" font-family="Outfit" font-size="9" font-weight="700" fill="#00c97a">SÍ</text>
+
+      <!-- aux = *inicio -->
+      <rect x="45" y="447" width="190" height="34" rx="7" fill="#7a30c4"/>
+      <text x="140" y="469" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="#fff">aux = *inicio</text>
+
+      <line x1="140" y1="481" x2="140" y2="499" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- *inicio = *fin -->
+      <rect x="45" y="500" width="190" height="34" rx="7" fill="#9a35e0"/>
+      <text x="140" y="522" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="#fff">*inicio = *fin</text>
+
+      <line x1="140" y1="534" x2="140" y2="552" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- *fin = aux -->
+      <rect x="45" y="553" width="190" height="34" rx="7" fill="#c45cf0"/>
+      <text x="140" y="575" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="#fff">*fin = aux</text>
+
+      <line x1="140" y1="587" x2="140" y2="605" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- inicio++ -->
+      <rect x="60" y="606" width="160" height="34" rx="7" fill="#3d8ef0"/>
+      <text x="140" y="628" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="#fff">inicio++</text>
+
+      <line x1="140" y1="640" x2="140" y2="658" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- fin-- -->
+      <rect x="60" y="659" width="160" height="34" rx="7" fill="#3d8ef0"/>
+      <text x="140" y="681" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="#fff">fin--</text>
+
+      <!-- loop back left to decision 2 -->
+      <line x1="60"  y1="676" x2="18" y2="676" stroke="#2a3a5a" stroke-width="1.5"/>
+      <line x1="18"  y1="676" x2="18" y2="383" stroke="#2a3a5a" stroke-width="1.5"/>
+      <line x1="18"  y1="383" x2="50" y2="383" stroke="#2a3a5a" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="5" y="540" font-family="Outfit" font-size="8" fill="#2a3a5a" transform="rotate(-90,5,540)">repetir</text>
+
+      <!-- FIN -->
+      <rect x="90" y="741" width="100" height="34" rx="17" fill="#00e5a0" filter="url(#glow)"/>
+      <text x="140" y="763" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="700" fill="#080c14">FIN</text>
+
+    </svg>
+  </div>
+
+  <!-- ── Visualizer ── -->
+  <div class="viz-panel">
+    <h2>Visualizador de memoria</h2>
+
+    <div class="progress" id="progress"></div>
+    <div class="step-badge" id="stepBadge"></div>
+    <div class="step-title"  id="stepTitle"></div>
+    <div class="step-desc"   id="stepDesc"></div>
+    <div class="ptr-bar"     id="ptrBar"></div>
+    <div class="mem-row"     id="memRow"></div>
+
+    <div class="nav">
+      <button class="btn-prev"  id="btnPrev"  onclick="go(-1)">← Anterior</button>
+      <button class="btn-next"  id="btnNext"  onclick="go(+1)">Siguiente →</button>
+      <button class="btn-reset" onclick="go(0,true)">↺</button>
+      <span class="counter" id="counter"></span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const steps = [
+  {
+    arr: Array.from("APUNTADORES"),
+    i: 0, f: 10, done: [],
+    title: "Estado inicial",
+    desc: "fin = inicio apunta al primer carácter.\nEl primer while mueve fin hasta '\\0'\ny luego retrocede un paso con fin--."
+  },
+  {
+    arr: Array.from("SERODATNUPA").reverse().join('').split('').map((_,i)=>
+      "APUNTADORES"[i]).map((_,i)=>"SERODATNUPA"[10-i]),
+    i: 1, f: 9, done: [0,10],
+    title: "Swap 1 — A ↔ S",
+    desc: "aux     = *inicio  →  'A'\n*inicio = *fin     →  'S'\n*fin    = aux      →  'A'\ninicio++   fin--"
+  },
+  {
+    arr: Array.from("SERUNTATDOPA").slice(0,11),
+    i: 2, f: 8, done: [0,1,9,10],
+    title: "Swap 2 — P ↔ E",
+    desc: "aux     = *inicio  →  'P'\n*inicio = *fin     →  'E'\n*fin    = aux      →  'P'\ninicio++   fin--"
+  },
+  {
+    arr: null,
+    i: 3, f: 7, done: [0,1,2,8,9,10],
+    title: "Swap 3 — U ↔ R",
+    desc: "aux     = *inicio  →  'U'\n*inicio = *fin     →  'R'\n*fin    = aux      →  'U'\ninicio++   fin--"
+  },
+  {
+    arr: null,
+    i: 4, f: 6, done: [0,1,2,3,7,8,9,10],
+    title: "Swap 4 — N ↔ O",
+    desc: "aux     = *inicio  →  'N'\n*inicio = *fin     →  'O'\n*fin    = aux      →  'N'\ninicio++   fin--"
+  },
+  {
+    arr: null,
+    i: 5, f: 5, done: [0,1,2,3,4,6,7,8,9,10],
+    title: "Swap 5 — T ↔ D",
+    desc: "aux     = *inicio  →  'T'\n*inicio = *fin     →  'D'\n*fin    = aux      →  'T'\ninicio++   fin--"
+  },
+  {
+    arr: null,
+    i: 5, f: 5, done: [0,1,2,3,4,5,6,7,8,9,10],
+    title: "¡Listo! — inicio == fin → STOP",
+    desc: "inicio < fin es FALSO.\nLos apuntadores llegaron al centro.\nResultado: S E R O D A T N U P A ✓"
+  },
+];
+
+// Build arrays from the final result
+const final = Array.from("SERODATNUPA");
+steps[0].arr = Array.from("APUNTADORES");
+steps[1].arr = ["S","P","U","N","T","A","D","O","R","E","A"];
+steps[2].arr = ["S","E","U","N","T","A","D","O","R","P","A"];
+steps[3].arr = ["S","E","R","N","T","A","D","O","U","P","A"];
+steps[4].arr = ["S","E","R","O","T","A","D","N","U","P","A"];
+steps[5].arr = [...final];
+steps[6].arr = [...final];
+
+let cur = 0;
+
+function render() {
+  const s = steps[cur];
+
+  // Progress
+  const prog = document.getElementById('progress');
+  prog.innerHTML = '';
+  steps.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'progress-dot' + (i === cur ? ' active' : i < cur ? ' done' : '');
+    prog.appendChild(d);
+  });
+
+  document.getElementById('stepBadge').textContent = `Paso ${cur + 1} / ${steps.length}`;
+  document.getElementById('stepTitle').textContent  = s.title;
+  document.getElementById('stepDesc').textContent   = s.desc;
+  document.getElementById('counter').textContent    = `${cur + 1} / ${steps.length}`;
+
+  // Pointer bar
+  const same = s.i === s.f;
+  document.getElementById('ptrBar').innerHTML = `
+    <div class="ptr-item">
+      <div class="ptr-dot" style="background:var(--c-proc)"></div>
+      <span style="color:var(--c-proc);font-weight:600">inicio</span>
+      <span style="color:var(--muted)">→ [${s.i}] '${s.arr[s.i]}'</span>
+    </div>
+    <div class="ptr-item">
+      <div class="ptr-dot" style="background:var(--c-swap)"></div>
+      <span style="color:var(--c-swap);font-weight:600">fin</span>
+      <span style="color:var(--muted)">→ [${s.f}] '${s.arr[s.f]}'</span>
+    </div>
+    ${same ? `<span style="color:var(--c-term);font-size:0.68rem;font-weight:600;">⚡ inicio == fin</span>` : ''}
+  `;
+
+  // Memory cells
+  const row = document.getElementById('memRow');
+  row.innerHTML = '';
+  s.arr.forEach((ch, idx) => {
+    const isI = idx === s.i;
+    const isF = idx === s.f;
+    const both = isI && isF;
+    const isDone = s.done.includes(idx) && !(isI || isF);
+
+    let cls = isDone ? 'swapped' : 'default';
+    if (both) cls = 'is-both';
+    else if (isI) cls = 'is-i';
+    else if (isF) cls = 'is-f';
+
+    const ptrCls = both ? 'pb' : isI ? 'pi' : isF ? 'pf' : '';
+    const ptrTxt = both ? 'i=f' : isI ? 'i' : isF ? 'f' : '';
+
+    const cell = document.createElement('div');
+    cell.className = 'mem-cell';
+    cell.innerHTML = `
+      <div class="mem-ptr ${ptrCls}">${ptrTxt}</div>
+      <div class="mem-char ${cls}">${ch}</div>
+      <div class="mem-idx">${idx}</div>
+    `;
+    row.appendChild(cell);
+  });
+
+  document.getElementById('btnPrev').disabled = cur === 0;
+  document.getElementById('btnNext').disabled = cur === steps.length - 1;
+}
+
+function go(dir, reset = false) {
+  if (reset) cur = 0;
+  else cur = Math.max(0, Math.min(steps.length - 1, cur + dir));
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
