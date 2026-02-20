@@ -39,8 +39,15 @@ int main() {
         // --- TU CÓDIGO AQUÍ ---
         // Caso A: Si *actual es mayor que *max1...
         //         max2 toma el valor de max1, y max1 apunta al actual.
+            if (*actual > *max1) {
+                max2 = max1; // max2 ahora apunta al antiguo máximo
+                max1 = actual; // max1 apunta al nuevo máximo
+            }
         // Caso B: Si *actual es mayor que *max2 (pero menor que max1)...
         //         max2 apunta al actual.
+        else if (*actual > *max2) {
+            max2 = actual; // max2 apunta al nuevo segundo máximo
+        }
         // -----------------------
     }
 
@@ -60,3 +67,5 @@ int main() {
 // PREGUNTA: Si el max1 se encuentra en la dirección 0x100 y el max2 en la 0x108,
 // y estamos trabajando con enteros (int) de 4 bytes, 
 // ¿qué valor numérico devolverá la operación max2 - max1 y por qué no devuelve simplemente 8?
+// RESPUESTA: La operación max2 - max1 devolverá el valor 2, no 8, porque la resta de apuntadores en C devuelve la cantidad de elementos entre ellos, no la diferencia en bytes.
+// En este caso, aunque la diferencia en bytes entre las direcciones es de 8 bytes (0x108 - 0x100), cada entero ocupa 4 bytes, por lo que hay 2 enteros entre esas direcciones (8 bytes / 4 bytes por entero = 2).
